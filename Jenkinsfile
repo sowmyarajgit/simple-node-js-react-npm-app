@@ -1,31 +1,35 @@
-pipeline {
-    agent {
-        docker {
-            image 'node:6-alpine'
-            args '-p 3000:3000'
-        }
-    }
-     environment {
-            CI = 'true'
-        }
-    stages {
-        stage('Build') {
-            steps {
-                sh 'npm install'
-            }
-        }
-        stage('Test') {
-                    steps {
-                        sh './jenkins/scripts/test.sh'
-                    }
-                }
-                stage('Deliver') {
-                            steps {
-                                sh './jenkins/scripts/deliver.sh'
-                                input message: 'Finished using the web site? (Click "Proceed" to continue)'
-                                sh './jenkins/scripts/kill.sh'
-                            }
-                        }
+pipeline { 
+  
+   agent any
 
-    }
-}
+   stages {
+   
+     stage('Pulling git code') { 
+        steps { 
+           git credentialsId: 'admin', url: 'https://github.com/sowmyarajgit/simple-node-js-react-npm-app.git'
+        }
+     }
+     
+     stage('nodejs build') { 
+        steps { 
+           sh 'npm install'
+        }
+      }
+
+       stage ("Sonar Analysis") {
+            environment {
+               scannerHome = tool 'admin_sonarscanner'
+            }
+            steps {
+                echo '<--------------- Sonar Analysis started  --------------->'
+                withSonarQubeEnv('admin_sonarcube') {    
+                    sh "${scannerHome}/bin/sonar-scanner"
+                echo '<--------------- Sonar Analysis stopped  --------------->'
+                }    
+               
+            }   
+        }   
+  
+   	}
+
+   }
